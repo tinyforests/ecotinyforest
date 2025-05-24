@@ -1,26 +1,106 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tiny Forest Builder</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script defer src="app.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Tiny Forest</title>
+  <!-- Tailwind CSS via CDN for quick styling -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
 </head>
-<body>
-  <header>
-    <h1>Build Your Miyawaki Tiny Forest</h1>
-    <form id="address-form">
-      <input type="text" id="address-input" placeholder="Enter your address" required />
-      <button type="submit">Show My Site</button>
-    </form>
-  </header>
-  <main>
-    <section id="evc-details"></section>
-    <div id="map" style="height: 400px;"></div>
-    <section id="plant-list"></section>
-  </main>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-3xl font-bold mb-4">My Tiny Forest</h1>
+
+    <!-- 1) Lookup your EVC -->
+    <div>
+      <label class="block mb-2">
+        Enter your EVC code:
+        <input id="evcInput"
+               type="text"
+               placeholder="e.g. 3"
+               class="w-full border px-2 py-1 rounded"/>
+      </label>
+      <button id="loadEvcBtn"
+              class="bg-blue-600 text-white px-4 py-2 rounded">
+        Load EVC
+      </button>
+    </div>
+
+    <!-- EVC details will render here -->
+    <div id="evcDetails" class="mt-6"></div>
+
+    <!-- 2) Planting calculator (shown once EVC loaded) -->
+    <div id="calculatorSection" class="mt-6 hidden">
+      <label class="block mb-2">
+        Area (sqm):
+        <input id="areaInput"
+               type="number"
+               placeholder="e.g. 10"
+               class="w-full border px-2 py-1 rounded"/>
+      </label>
+      <button id="calcBtn"
+              class="bg-green-600 text-white px-4 py-2 rounded">
+        Calculate Planting Plan
+      </button>
+
+      <div id="planOutput" class="mt-4"></div>
+    </div>
+  </div>
+
+  <script>
+    let curatedData;
+    // Load your full JSON on startup
+    fetch('data/curated-plants.json')
+      .then(r => r.json())
+      .then(json => curatedData = json)
+      .catch(console.error);
+
+    // Render EVC details
+    document.getElementById('loadEvcBtn').onclick = () => {
+      const id = document.getElementById('evcInput').value.trim();
+      const evc = curatedData[id];
+      const out = document.getElementById('evcDetails');
+      if (!evc) {
+        out.innerHTML = '<p class="text-red-600">No data for EVC '+id+'</p>';
+        document.getElementById('calculatorSection').classList.add('hidden');
+        return;
+      }
+      let html = '<h2 class="text-2xl font-bold">EVC '+id+'</h2>';
+      html += '<p class="mt-2">'+evc.description+'</p>';
+      evc.recommendations.forEach(layer => {
+        html += '<h3 class="mt-4 font-semibold">'+layer.layer+'</h3>';
+        html += '<ul class="list-disc ml-6">';
+        layer.plants.forEach(p=> html += '<li>'+p+'</li>');
+        html += '</ul>';
+      });
+      out.innerHTML = html;
+      document.getElementById('calculatorSection').classList.remove('hidden');
+    };
+
+    // Simple “Miyawaki” planting‐plan
+    document.getElementById('calcBtn').onclick = () => {
+      const id = document.getElementById('evcInput').value.trim();
+      const evc = curatedData[id];
+      const area = parseFloat(document.getElementById('areaInput').value);
+      if (!evc || isNaN(area)||area<=0) return;
+      const total = Math.round(area*3);
+      let tbl = '<h3 class="text-xl font-semibold">Planting Plan: '+total+' plants</h3>';
+      tbl += '<table class="table-auto w-full mt-2 border-collapse">';
+      tbl += '<tr><th class="border px-2">Layer</th><th class="border px-2">Species</th><th class="border px-2">Count</th></tr>';
+      evc.recommendations.forEach(layer => {
+        const perLayer = Math.round(total*(1/evc.recommendations.length));
+        const each = Math.max(1, Math.round(perLayer/layer.plants.length));
+        layer.plants.forEach(p => {
+          tbl += '<tr>'
+            +'<td class="border px-2">'+layer.layer+'</td>'
+            +'<td class="border px-2">'+p+'</td>'
+            +'<td class="border px-2">'+each+'</td>'
+            +'</tr>';
+        });
+      });
+      tbl += '</table>';
+      document.getElementById('planOutput').innerHTML = tbl;
+    };
+  </script>
 </body>
 </html>
-
