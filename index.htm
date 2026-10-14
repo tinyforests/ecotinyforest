@@ -50,7 +50,7 @@
   <script>
     let curatedData;
     // Load your full JSON on startup
-    fetch('data/curated-plants.json')
+    fetch('curated-plants.json')
       .then(r => r.json())
       .then(json => curatedData = json)
       .catch(console.error);
